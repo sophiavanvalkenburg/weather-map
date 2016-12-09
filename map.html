@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <style type="text/css">
+            html, body {
+                height: 100%;
+                margin: 0;
+            }
+            #map_canvas {
+                min-height: 100%;
+            }
+       </style>
+        <script src="papaparse.min.js"></script>
+        <script type="text/javascript" src="http://maps.googleapis.com/maps/api/js?libraries=visualization&sensor=false"></script>
+        <script src='https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js'></script>
+        <script>
+            var WEATHER_COLORS = {
+                CLOUDY: "black",
+                RAINY: "#010F83", // dark blue
+                SNOWY: "white",
+                ICY: "#3C9DFF", //light blue
+                //HOT: "red",
+                //COLD: "#3C9DFF" // light blue
+            }
+            var WEATHER_DATA = {
+                //"01": { color: WEATHER_COLORS.CLOUDY, alpha: 0.0, circles: []},
+                //"02": { color: WEATHER_COLORS.CLOUDY, alpha: 0.0, circles: []},
+                "03": { color: WEATHER_COLORS.CLOUDY, alpha: 0.2, circles: []},
+                "04": { color: WEATHER_COLORS.CLOUDY, alpha: 0.2, circles: []},
+                "05": { color: WEATHER_COLORS.CLOUDY, alpha: 0.4, circles: []},
+                "06": { color: WEATHER_COLORS.CLOUDY, alpha: 0.4, circles: []},
+                "07": { color: WEATHER_COLORS.CLOUDY, alpha: 0.6, circles: []},
+                "08": { color: WEATHER_COLORS.CLOUDY, alpha: 0.6, circles: []},
+                "11": { color: WEATHER_COLORS.CLOUDY, alpha: 0.6, circles: []},
+                "12": { color: WEATHER_COLORS.RAINY, alpha: 0.2, circles: []},
+                "13": { color: WEATHER_COLORS.RAINY, alpha: 0.2, circles: []},
+                "14": { color: WEATHER_COLORS.RAINY, alpha: 0.2, circles: []},
+                "15": { color: WEATHER_COLORS.RAINY, alpha: 0.7, circles: []},
+                "16": { color: WEATHER_COLORS.RAINY, alpha: 0.7, circles: []},
+                "17": { color: WEATHER_COLORS.RAINY, alpha: 0.5, circles: []},
+                "18": { color: WEATHER_COLORS.RAINY, alpha: 0.5, circles: []},
+                "19": { color: WEATHER_COLORS.SNOWY, alpha: 0.5, circles: []},
+                "20": { color: WEATHER_COLORS.SNOWY, alpha: 0.5, circles: []},
+                "21": { color: WEATHER_COLORS.SNOWY, alpha: 0.5, circles: []},
+                "22": { color: WEATHER_COLORS.SNOWY, alpha: 0.7, circles: []},
+                "23": { color: WEATHER_COLORS.SNOWY, alpha: 0.7, circles: []},
+                "24": { color: WEATHER_COLORS.ICY, alpha: 0.7, circles: []},
+                "25": { color: WEATHER_COLORS.ICY, alpha: 0.7, circles: []},
+                "26": { color: WEATHER_COLORS.ICY, alpha: 0.7, circles: []},
+                "29": { color: WEATHER_COLORS.ICY, alpha: 0.5, circles: []},
+                //"30": { color: WEATHER_COLORS.HOT, alpha: 0.5, circles: []},
+                //"31": { color: WEATHER_COLORS.COLD, alpha: 0.5, circles: []},
+                //"32": { color: WEATHER_COLORS.CLOUDY, alpha: 0.6, circles: []},
+                //"33": { color: WEATHER_COLORS.CLOUDY, alpha: 0.6, circles: []},
+                //"34": { color: WEATHER_COLORS.CLOUDY, alpha: 0.6, circles: []},
+                "35": { color: WEATHER_COLORS.CLOUDY, alpha: 0.2, circles: []},
+                "36": { color: WEATHER_COLORS.CLOUDY, alpha: 0.2, circles: []},
+                "37": { color: WEATHER_COLORS.CLOUDY, alpha: 0.4, circles: []},
+                "38": { color: WEATHER_COLORS.CLOUDY, alpha: 0.4, circles: []},
+                "39": { color: WEATHER_COLORS.RAINY, alpha: 0.2, circles: []},
+                "40": { color: WEATHER_COLORS.RAINY, alpha: 0.2, circles: []},
+                "41": { color: WEATHER_COLORS.RAINY, alpha: 0.7, circles: []},
+                "42": { color: WEATHER_COLORS.RAINY, alpha: 0.7, circles: []},
+                "43": { color: WEATHER_COLORS.SNOWY, alpha: 0.5, circles: []},
+                "44": { color: WEATHER_COLORS.SNOWY, alpha: 0.5, circles: []},
+            };
+            var map;
+            google.maps.event.addDomListener(window, 'load', initialize);
+            function initialize() {
+                var map_canvas = document.getElementById('map_canvas');
+                var map_styles = [
+                {   // turn off pre-existing points of interest labels
+                    featureType: "poi",
+                    elementType: "labels",
+                    stylers: [
+                    { visibility: "off" }
+                    ]
+                },
+                {   // turn off highway geometry
+                    featureType: "road.highway",
+                    elementType: "geometry",
+                    stylers: [
+                    { visibility: "off" }
+                    ]
+                },
+                {   // turn off highway labels
+                    featureType: "road.highway",
+                    elementType: "labels",
+                    stylers: [
+                    { visibility: "off" }
+                    ]
+                }
+                ];
+                var map_options = {
+                    center: new google.maps.LatLng(41.850033, -87.6500523),
+                    zoom: 4,
+                    mapTypeId: google.maps.MapTypeId.ROADMAP,
+                    styles: map_styles
+                };
+                map = new google.maps.Map(map_canvas, map_options);
+                $.ajaxSetup({ cache: false });
+            }
+            function parseWeatherData(results){
+                var rows = results.data;
+                var temp_data = [];
+                for (var i=0; i<rows.length; i++){
+                    if (rows[i].length != 5){
+                        continue;
+                    }
+                    var latlng = new google.maps.LatLng(rows[i][0], rows[i][1]);
+                    var weather_code = rows[i][2];
+                    if (WEATHER_DATA[weather_code] !== undefined){
+                        WEATHER_DATA[weather_code].circles.push(drawCircle(latlng, 25, 1))
+                    }
+                    temp_data.push({
+                        location: latlng,
+                        weight: rows[i][3] // high temp
+                    });
+                }
+                for (var key in WEATHER_DATA){
+                    if (!WEATHER_DATA.hasOwnProperty(key)) continue;
+                    var obj = WEATHER_DATA[key];
+                    if (obj.circles !== undefined && obj.circles.length > 0){
+                        var polygon = new google.maps.Polygon({
+                            paths: obj.circles,
+                            fillColor: obj.color,
+                            fillOpacity: obj.alpha,
+                            strokeWeight: 0
+                        })
+                        polygon.setMap(map);
+                    }
+                }
+            }
+            function drawCircle(point, radius, dir){
+                var d2r = Math.PI / 180;   // degrees to radians
+                var r2d = 180 / Math.PI;   // radians to degrees
+                var earthsradius = 3963; // 3963 is the radius of the earth in miles
+                var points = 32;
+
+                // find the raidus in lat/lon
+                var rlat = (radius / earthsradius) * r2d;
+                var rlng = rlat / Math.cos(point.lat() * d2r);
+
+                var extp = new Array();
+                if (dir==1) {var start=0;var end=points+1} // one extra here makes sure we connect the
+                else{var start=points+1;var end=0}
+                for (var i=start; (dir==1 ? i < end : i > end); i=i+dir)
+                {
+                    var theta = Math.PI * (i / (points/2));
+                    ey = point.lng() + (rlng * Math.cos(theta)); // center a + radius x * cos(theta)
+                    ex = point.lat() + (rlat * Math.sin(theta)); // center b + radius y * sin(theta)
+                    extp.push(new google.maps.LatLng(ex, ey));
+                }
+                return extp;
+            }
+            function handleFileSelect(evt){
+                var file = evt.target.files[0];
+                Papa.parse(file, {
+                    complete: parseWeatherData
+                });
+            }
+            $(document).ready(function(){
+                $("#csv-file").change(handleFileSelect);
+            });
+        </script>
+    </head>
+    <body>
+        <input type="file" id="csv-file" name="files"/>
+        <div id='map_canvas'></div>
+    </body>
+</html>
+
